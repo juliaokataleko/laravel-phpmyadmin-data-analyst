@@ -85,7 +85,7 @@ class IndexController extends Controller
         // USE CASE
 
         // top salaries
-        $employeesWithSalary = DB::select('
+        $topSalaries = DB::select('
             SELECT employee_demographics.id,
             employee_demographics.first_name,
             employee_demographics.last_name,
@@ -96,7 +96,7 @@ class IndexController extends Controller
         ');
 
         // avarege salary
-        $employeesWithSalary = DB::select('SELECT
+        $averageSaleries = DB::select('SELECT
             job_title,
             AVG(amount) as avg_salary
             FROM employee_demographics
@@ -105,7 +105,120 @@ class IndexController extends Controller
         ');
 
         return response()->json([
-            $employeesWithSalary
+            $averageSaleries
         ]);
     }
+
+    public function union() {
+        // Union, Union All
+        $employees = DB::select("SELECT * FROM employee_demographics");
+        return response()->json($employees);
+    }
+
+    public function case() {
+
+        // Case Statement
+        $employees = DB::select("
+            SELECT first_name, last_name,age,
+            CASE
+                WHEN age > 30 THEN 'Old'
+                WHEN age BETWEEN 27 AND 30 THEN 'Young'
+                ELSE 'Baby'
+            END AS age_level
+            FROM employee_demographics
+            WHERE age IS NOT NULL
+        ");
+
+        // change salaries to different jobs
+        $employees = DB::select("
+            SELECT ed.id as employee_id, first_name, last_name, amount as salary,job_title,
+            CASE
+                WHEN job_title = 'Developer' THEN amount+(amount*0.10)
+                WHEN job_title = 'Comercial' THEN amount+(amount*0.07)
+                WHEN job_title = 'Marketer' THEN amount+(amount*0.05)
+                ELSE amount+(amount*0.03)
+            END as salary_increased
+            FROM employee_demographics AS ed
+            JOIN employee_salaries AS es ON es.employee_id = ed.id
+        ");
+
+        return response()->json($employees);
+    }
+
+    public function having() {
+        // Having
+
+        // jobs with more employees
+        // we use HAVING instead of WHERE when is not real field in the database
+        $employees = DB::select("
+            SELECT job_title, COUNT(job_title) FROM employee_demographics as ed
+            JOIN employee_salaries AS es ON es.employee_id = ed.id
+            GROUP BY job_title
+            HAVING COUNT(job_title) > 1
+        ");
+
+        // average salary
+        $employees = DB::select("
+            SELECT job_title, AVG(amount) FROM employee_demographics as ed
+            JOIN employee_salaries AS es ON es.employee_id = ed.id
+            GROUP BY job_title
+            HAVING AVG(amount) > 2000
+            ORDER BY AVG(amount) DESC
+        ");
+
+        return response()->json($employees);
+    }
+
+    public function crud() {
+
+        // update
+        $update = DB::update("
+            UPDATE employee_demographics SET last_name = 'Kataleko II'
+            WHERE id = 1
+        ");
+
+        // delete
+        $delete = DB::delete("DELETE FROM employee_demographics WHERE id = 2");
+
+        // select
+        $employees = DB::select("
+            SELECT ed.id as employee_id, first_name, last_name, amount as salary,job_title,
+            CASE
+                WHEN job_title = 'Developer' THEN amount+(amount*0.10)
+                WHEN job_title = 'Comercial' THEN amount+(amount*0.07)
+                WHEN job_title = 'Marketer' THEN amount+(amount*0.05)
+                ELSE amount+(amount*0.03)
+            END as salary_increased
+            FROM employee_demographics AS ed
+            JOIN employee_salaries AS es ON es.employee_id = ed.id
+        ");
+
+        return response()->json($employees);
+
+    }
+
+    public function aliasing() {
+        // aliasing
+        $employees = DB::select("
+            SELECT demo.id as employee_id, first_name as fname,
+            CONCAT(first_name, ' ', last_name) as fullname, amount as salary
+            FROM employee_demographics as demo
+            JOIN employee_salaries AS sal on demo.id = sal.employee_id
+        ");
+
+        return response()->json($employees);
+    }
+
+    public function partition() {
+        // aliasing
+        $employees = DB::select("
+            SELECT demo.id as employee_id, first_name as fname,
+            CONCAT(first_name, ' ', last_name) as fullname, amount as salary
+            FROM employee_demographics as demo
+            JOIN employee_salaries AS sal on demo.id = sal.employee_id
+        ");
+
+        return response()->json($employees);
+    }
+
 }
