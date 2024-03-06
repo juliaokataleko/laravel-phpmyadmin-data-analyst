@@ -25,3 +25,5 @@ Route::get('/crud', [IndexController::class, 'crud']);
 Route::get('/aliasing', [IndexController::class, 'aliasing']);
 Route::get('/partition', [IndexController::class, 'partition']);
 Route::get('/ctes', [IndexController::class, 'ctes']);
+Route::get('/temptables', [IndexController::class, 'tempTables']);
+Route::get('/functions', [IndexController::class, 'functions']);

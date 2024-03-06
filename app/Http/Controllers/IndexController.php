@@ -242,10 +242,129 @@ class IndexController extends Controller
         // ctes
         // subqueries
         $employees = DB::select("
-            WITH 
+            WITH CTE_employees AS (
+                SELECT first_name, last_name, gender, amount as salary,
+                COUNT(gender) OVER (PARTITION BY gender) AS total_gender,
+                AVG(amount) OVER (PARTITION BY gender) AS avg_salary
+                FROM employee_demographics emp
+                JOIN employee_salaries sal ON emp.id = sal.employee_id
+                WHERE amount > 1500
+            )
+            SELECT first_name,avg_salary FROM CTE_employees
         ");
 
         return response()->json($employees);
+    }
+
+    public function tempTables() {
+
+        // drop tables
+        DB::statement("DROP TABLE IF EXISTS temp_employees");
+        DB::statement("DROP TABLE IF EXISTS temp_employees2");
+
+        // temporary tables
+        $createTempTable = DB::statement("
+            CREATE TEMPORARY TABLE temp_employees (
+                id int,
+                job VARCHAR(100),
+                salary int
+            )
+        ");
+
+        // insert
+        // $insert = DB::insert("
+        // INSERT INTO temp_employees
+        // VALUES(1,'Developer', 5000),
+
+        // ");
+
+        // insert from another table
+        $insert = DB::insert("
+            INSERT INTO temp_employees (id,job,salary)
+            SELECT emp.id,sal.job_title,sal.amount FROM employee_demographics as emp
+            JOIN employee_salaries as sal ON sal.employee_id = emp.id
+        ");
+
+        // create another temporary table
+        $createTempTable2 = DB::statement("
+            CREATE TEMPORARY TABLE temp_employees2 (
+                job_title VARCHAR(100),
+                employees_per_job int,
+                avg_age int,
+                avg_salary int
+            )
+        ");
+
+        // insert into second table
+        $insert = DB::insert("
+            INSERT INTO temp_employees2 (job_title,employees_per_job,avg_age,avg_salary)
+            SELECT sal.job_title,COUNT(job_title),AVG(age),AVG(sal.amount) FROM employee_demographics as emp
+            JOIN employee_salaries as sal ON sal.employee_id = emp.id
+            GROUP BY job_title
+        ");
+
+        $employees = DB::select("
+            SELECT * FROM temp_employees2
+        ");
+
+        return response()->json($employees);
+    }
+
+    public function functions() {
+
+        // String functions - TRIM, LTRIM, RTRIM, Replace, Subsctring,Uppercase,Lower
+        DB::statement("CREATE TABLE IF NOT EXISTS employee_errors (
+            employee_id int,
+            first_name VARCHAR(100),
+            last_name VARCHAR(100),
+            error VARCHAR(100) NULL
+        )");
+
+        // DB::insert("
+        //     INSERT INTO employee_errors VALUES(1,'Julian   ', '   Kata',''),
+        //     (3,'Mary edited  ', 'Maria  ',''),
+        //     (1,'Peter         yea', 'Enderson  ','')
+        // ");
+
+        // select
+        $employees = DB::select("
+            SELECT employee_id,
+            first_name,
+            TRIM(first_name) as first_name_trimed,
+            last_name,
+            TRIM(last_name) as last_name_trimed
+            FROM employee_errors
+        ");
+
+        // using replace
+        $employees = DB::select("
+            SELECT employee_id,
+            first_name,
+            TRIM(REPLACE(first_name, '  ', '')) as first_name_trimed_replaced,
+            last_name,
+            TRIM(REPLACE(last_name, '  ', '')) as last_name_trimed
+            FROM employee_errors
+        ");
+
+        // substring
+        $employees = DB::select("
+            SELECT dem.first_name,
+            err.first_name
+            FROM employee_errors AS err
+            JOIN employee_demographics AS dem ON err.employee_id = dem.id
+        ");
+
+        // upper and lower
+        $employees = DB::select("
+        SELECT
+        first_name,
+        LOWER(first_name),
+        UPPER(last_name)
+        FROM employee_errors
+        ");
+
+        return response()->json($employees);
+
     }
 
 }
