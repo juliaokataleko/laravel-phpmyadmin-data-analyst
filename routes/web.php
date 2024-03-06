@@ -24,3 +24,4 @@ Route::get('/having', [IndexController::class, 'having']);
 Route::get('/crud', [IndexController::class, 'crud']);
 Route::get('/aliasing', [IndexController::class, 'aliasing']);
 Route::get('/partition', [IndexController::class, 'partition']);
+Route::get('/ctes', [IndexController::class, 'ctes']);

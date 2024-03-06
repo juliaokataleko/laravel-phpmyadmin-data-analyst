@@ -210,12 +210,39 @@ class IndexController extends Controller
     }
 
     public function partition() {
-        // aliasing
+
+        // Partition By
         $employees = DB::select("
-            SELECT demo.id as employee_id, first_name as fname,
-            CONCAT(first_name, ' ', last_name) as fullname, amount as salary
-            FROM employee_demographics as demo
-            JOIN employee_salaries AS sal on demo.id = sal.employee_id
+            SELECT first_name, last_name, gender, amount AS salary,
+            COUNT(gender) OVER (PARTITION BY gender) as total_gender
+            FROM employee_demographics dem
+            JOIN employee_salaries sal ON sal.employee_id = dem.id
+        ");
+
+        $employees = DB::select("
+            SELECT first_name, last_name, gender, amount AS salary,
+            COUNT(gender) as total_gender
+            FROM employee_demographics dem
+            JOIN employee_salaries sal ON sal.employee_id = dem.id
+            GROUP BY first_name, last_name, gender, amount
+        ");
+
+        $employees = DB::select("
+            SELECT gender,
+            COUNT(gender) as total_gender
+            FROM employee_demographics dem
+            JOIN employee_salaries sal ON sal.employee_id = dem.id
+            GROUP BY gender
+        ");
+
+        return response()->json($employees);
+    }
+
+    public function ctes() {
+        // ctes
+        // subqueries
+        $employees = DB::select("
+            WITH 
         ");
 
         return response()->json($employees);
