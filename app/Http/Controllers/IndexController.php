@@ -367,4 +367,18 @@ class IndexController extends Controller
 
     }
 
+    public function procedures() {
+        // procedures
+        
+        $employees = DB::select("
+            SELECT
+            first_name,
+            LOWER(first_name),
+            UPPER(last_name)
+            FROM employee_errors
+        ");
+
+        return response()->json($employees);
+    }
+
 }
