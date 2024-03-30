@@ -368,17 +368,89 @@ class IndexController extends Controller
     }
 
     public function procedures() {
-        // procedures
-        
-        $employees = DB::select("
-            SELECT
-            first_name,
-            LOWER(first_name),
-            UPPER(last_name)
-            FROM employee_errors
+        // Stroed procedures
+        // create a sql routine to be called by a commom name
+
+        // $employees = DB::select("
+        //     SELECT
+        //     first_name,
+        //     LOWER(first_name),
+        //     UPPER(last_name)
+        //     FROM employee_errors
+        // ");
+
+        // DB::statement("
+        //     CREATE PROCEDURE all_employees()
+        //     BEGIN
+        //         SELECT * FROM employee_demographics;
+        //     END
+        // ");
+
+        $employees = DB::select("CALL all_employees");
+
+        // create temp tble with procedure
+        DB::statement("
+            CREATE PROCEDURE temp_employees()
+            BEGIN
+                CREATE TEMPORARY TABLE temp_employee_table (name VARCHAR(50),age int);
+            END
         ");
 
+        DB::statement("CALL temp_employees");
+
+        DB::statement("
+            INSERT INTO temp_employee_table
+            SELECT first_name,age FROM employee_demographics
+        ");
+
+        $employees = DB::select("SELECT * FROM temp_employee_table");
+
         return response()->json($employees);
+    }
+
+    public function subqueries() {
+        // $employee_salaries = DB::select("
+        //     SELECT * FROM employee_salaries
+        // ");
+
+        $employee_salaries = DB::select("
+            SELECT employee_id, amount,
+            (SELECT AVG(amount) FROM employee_salaries) AS average_salary
+            FROM employee_salaries
+        ");
+
+        // subqueries with partition
+        $employee_salaries2 = DB::select("
+            SELECT employee_id, amount,
+            AVG(amount) OVER() AS average_salary
+            FROM employee_salaries
+        ");
+
+        // using group by
+        $employee_salaries3 = DB::select("
+            SELECT employee_id, amount,
+            AVG(amount) AS average_salary
+            FROM employee_salaries
+            GROUP BY employee_id, amount
+            ORDER BY 1,2
+        ");
+
+        // using subquery in FROM, its like creating a temporary table
+        $employee_salaries3 = DB::select("
+            SELECT * FROM (SELECT employee_id, amount,
+            AVG(amount) OVER() AS average_salary
+            FROM employee_salaries) as employee_salary
+        ");
+
+        // subquery in where
+        $employee_salaries3 = DB::select("
+            SELECT s.employee_id, CONCAT(e.first_name, ' ', e.last_name)as employee_name, s.amount, s.job_title
+            FROM employee_salaries as s
+            JOIN employee_demographics as e ON e.id = s.employee_id
+            WHERE employee_id IN (SELECT id FROM employee_demographics WHERE age > 40)
+        ");
+
+        return response()->json($employee_salaries3);
     }
 
 }
